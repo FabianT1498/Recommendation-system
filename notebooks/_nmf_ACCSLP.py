@@ -187,7 +187,7 @@ def _beta_divergence(S, X, Z, U, H, W, V, beta, alpha, loss_function="kullback-l
 
         res = np.dot(div_prop, np.log(div_log))
         
-        # computes X * np.sum((WH/sum_WH) * log(UH /(WH/sum_WH))) only where X is nonzero
+        # computes S * np.sum((WH/sum_WH) * log(UH /(WH/sum_WH))) only where X is nonzero
         res = np.dot(S_data, res)
 
         # add full np.sum(np.dot(U, H)) - S * np.sum((UH/sum_UH) * log(UH /(UH/sum_UH)))
@@ -565,217 +565,281 @@ def _fit_coordinate_descent(
 
     return W, Ht.T, n_iter
 
-
-def _multiplicative_update_w(
-    X,
-    W,
+def _multiplicative_update_u(
+    S,
+    Z,
+    U,
     H,
-    beta_loss,
-    l1_reg_W,
-    l2_reg_W,
-    gamma,
+    V,
+    beta,
+    beta_loss=1,
+    gamma=1.0,
     H_sum=None,
     HHt=None,
     XHt=None,
     update_H=True,
 ):
-    """Update W in Multiplicative Update NMF."""
-    if beta_loss == 2:
-        # Numerator
-        if XHt is None:
-            XHt = safe_sparse_dot(X, H.T)
-        if update_H:
-            # avoid a copy of XHt, which will be re-computed (update_H=True)
-            numerator = XHt
-        else:
-            # preserve the XHt, which is not re-computed (update_H=False)
-            numerator = XHt.copy()
+    """Update U in Multiplicative Update NMF."""
+ 
+    # Numerator
 
-        # Denominator
-        if HHt is None:
-            HHt = np.dot(H, H.T)
-        denominator = np.dot(W, HHt)
-
+    # if S is sparse, compute WH only where S is non zero
+    UH_safe_S = _special_sparse_dot(U, H, S)
+    if sp.issparse(S):
+        UH_safe_S_data = UH_safe_S.data
+        S_data = S.data
     else:
-        # Numerator
-        # if X is sparse, compute WH only where X is non zero
-        WH_safe_X = _special_sparse_dot(W, H, X)
-        if sp.issparse(X):
-            WH_safe_X_data = WH_safe_X.data
-            X_data = X.data
-        else:
-            WH_safe_X_data = WH_safe_X
-            X_data = X
-            # copy used in the Denominator
-            WH = WH_safe_X.copy()
-            if beta_loss - 1.0 < 0:
-                WH[WH < EPSILON] = EPSILON
+        UH_safe_S_data = UH_safe_S
+        S_data = S
+        # copy used in the Denominator
+        UH = UH_safe_S.copy()
+        if beta_loss - 1.0 < 0:
+            UH[UH < EPSILON] = EPSILON
 
-        # to avoid taking a negative power of zero
-        if beta_loss - 2.0 < 0:
-            WH_safe_X_data[WH_safe_X_data < EPSILON] = EPSILON
+    # to avoid taking a negative power of zero
+    if beta_loss - 2.0 < 0:
+        UH_safe_S_data[UH_safe_S_data < EPSILON] = EPSILON
 
-        if beta_loss == 1:
-            np.divide(X_data, WH_safe_X_data, out=WH_safe_X_data)
-        elif beta_loss == 0:
-            # speeds up computation time
-            # refer to /numpy/numpy/issues/9363
-            WH_safe_X_data **= -1
-            WH_safe_X_data **= 2
-            # element-wise multiplication
-            WH_safe_X_data *= X_data
-        else:
-            WH_safe_X_data **= beta_loss - 2
-            # element-wise multiplication
-            WH_safe_X_data *= X_data
+    # if Z is sparse, compute UV only where Z is non zero
+    UV_safe_Z = _special_sparse_dot(U, V, Z)
+    if sp.issparse(Z):
+        UV_safe_Z_data = UV_safe_Z.data
+        Z_data = Z.data
+    else:
+        UV_safe_Z_data = UV_safe_Z
+        Z_data = Z
+        # copy used in the Denominator
+        UV = UV_safe_Z.copy()
+        if beta_loss - 1.0 < 0:
+            UV[UV < EPSILON] = EPSILON
 
-        # here numerator = dot(X * (dot(W, H) ** (beta_loss - 2)), H.T)
-        numerator = safe_sparse_dot(WH_safe_X, H.T)
+    # to avoid taking a negative power of zero
+    if beta_loss - 2.0 < 0:
+        UH_safe_S_data[UH_safe_S_data < EPSILON] = EPSILON
+        UV_safe_Z_data[UV_safe_Z_data < EPSILON] = EPSILON
 
-        # Denominator
-        if beta_loss == 1:
-            if H_sum is None:
-                H_sum = np.sum(H, axis=1)  # shape(n_components, )
-            denominator = H_sum[np.newaxis, :]
+    if beta_loss == 1:
+        np.divide(S_data, UH_safe_S_data, out=UH_safe_S_data)
+        np.divide(Z_data, UV_safe_Z_data, out=UV_safe_Z_data)
+   
+    # here numerator = dot(X * (dot(W, H) ** (beta_loss - 2)), H.T)
+    numerator = safe_sparse_dot(UH_safe_S, H.T)
+    numerator += (beta * safe_sparse_dot(UV_safe_Z, V.T))
 
-        else:
-            # computation of WHHt = dot(dot(W, H) ** beta_loss - 1, H.T)
-            if sp.issparse(X):
-                # memory efficient computation
-                # (compute row by row, avoiding the dense matrix WH)
-                WHHt = np.empty(W.shape)
-                for i in range(X.shape[0]):
-                    WHi = np.dot(W[i, :], H)
-                    if beta_loss - 1 < 0:
-                        WHi[WHi < EPSILON] = EPSILON
-                    WHi **= beta_loss - 1
-                    WHHt[i, :] = np.dot(WHi, H.T)
-            else:
-                WH **= beta_loss - 1
-                WHHt = np.dot(WH, H.T)
-            denominator = WHHt
+    # Denominator
+    if beta_loss == 1:
+        if H_sum is None and V_sum is None:
+            H_sum = np.sum(H, axis=1)  # shape(n_components, )
+            V_sum = np.sum(V, axis=1)  # shape(n_components, )
+        denominator = H_sum[np.newaxis, :]
+        denominator += (beta * V_sum[np.newaxis, :])
 
-    # Add L1 and L2 regularization
-    if l1_reg_W > 0:
-        denominator += l1_reg_W
-    if l2_reg_W > 0:
-        denominator = denominator + l2_reg_W * W
+    denominator[denominator == 0] = EPSILON
+
+    numerator /= denominator
+    delta_U = numerator
+
+    U *= delta_U
+
+    return U
+
+
+def _multiplicative_update_h(
+    S,
+    X,
+    U,
+    W,
+    H,
+    alpha,
+    beta_loss=1,
+    gamma=1.0,
+    H_sum=None,
+    HHt=None,
+    XHt=None,
+    update_H=True,
+):
+    """Update H in Multiplicative Update NMF."""
+ 
+    # Numerator
+
+    # if S is sparse, compute WH only where S is non zero
+    UH_safe_S = _special_sparse_dot(U, H, S)
+    if sp.issparse(S):
+        UH_safe_S_data = UH_safe_S.data
+        S_data = S.data
+    else:
+        UH_safe_S_data = UH_safe_S
+        S_data = S
+        # copy used in the Denominator
+        UH = UH_safe_S.copy()
+        if beta_loss - 1.0 < 0:
+            UH[UH < EPSILON] = EPSILON
+
+    # to avoid taking a negative power of zero
+    if beta_loss - 2.0 < 0:
+        UH_safe_S_data[UH_safe_S_data < EPSILON] = EPSILON
+
+    # if X is sparse, compute WH only where X is non zero
+    WH_safe_X = _special_sparse_dot(W, H, X)
+    if sp.issparse(X):
+        WH_safe_X_data = WH_safe_X.data
+        X_data = X.data
+    else:
+        WH_safe_X_data = WH_safe_X
+        X_data = X
+        # copy used in the Denominator
+        UV = WH_safe_X.copy()
+        if beta_loss - 1.0 < 0:
+            UV[UV < EPSILON] = EPSILON
+
+    # to avoid taking a negative power of zero
+    if beta_loss - 2.0 < 0:
+        UH_safe_S_data[UH_safe_S_data < EPSILON] = EPSILON
+        WH_safe_X_data[WH_safe_X_data < EPSILON] = EPSILON
+
+    if beta_loss == 1:
+        np.divide(S_data, UH_safe_S_data, out=UH_safe_S_data)
+        np.divide(X_data, WH_safe_X_data, out=WH_safe_X_data)
+   
+    # here numerator = dot(X * (dot(W, H) ** (beta_loss - 2)), H.T)
+    numerator = safe_sparse_dot(U.T, UH_safe_S)
+    numerator += (alpha * safe_sparse_dot(W.T, WH_safe_X))
+
+    # Denominator
+    if beta_loss == 1:
+        if U_sum is None and W_sum is None:
+            U_sum = np.sum(U, axis=0)  # shape(n_components, )
+            W_sum = np.sum(W, axis=0)  # shape(n_components, )
+        denominator = U_sum[:, np.newaxis]
+        denominator += (alpha * W_sum[:, np.newaxis])
+
+    denominator[denominator == 0] = EPSILON
+
+    numerator /= denominator
+    delta_H = numerator
+
+    H *= delta_H
+
+    return H
+
+def _multiplicative_update_w(
+    X,
+    W
+    H,
+    beta_loss=1,
+    gamma=1.0,
+    H_sum=None,
+    HHt=None,
+    XHt=None,
+    update_H=True
+):
+    """Update W in Multiplicative Update NMF."""
+ 
+    # Numerator
+
+    # if X is sparse, compute WH only where X is non zero
+    WH_safe_X = _special_sparse_dot(W, H, X)
+    if sp.issparse(X):
+        WH_safe_X_data = WH_safe_X.data
+        X_data = X.data
+    else:
+        WH_safe_X_data = WH_safe_X
+        X_data = X
+        # copy used in the Denominator
+        WH = WH_safe_X.copy()
+        if beta_loss - 1.0 < 0:
+            WH[WH < EPSILON] = EPSILON
+
+    # to avoid taking a negative power of zero
+    if beta_loss - 2.0 < 0:
+        WH_safe_X_data[WH_safe_X_data < EPSILON] = EPSILON
+
+    if beta_loss == 1:
+        np.divide(X_data, WH_safe_X_data, out=WH_safe_X_data)
+   
+    # here numerator = dot(X * (dot(W, H) ** (beta_loss - 2)), H.T)
+    numerator = safe_sparse_dot(WH_safe_X, H.T)
+
+    # Denominator
+    if beta_loss == 1:
+        if H_sum is None:
+            H_sum = np.sum(H, axis=1)  # shape(n_components, )
+
+        denominator = H_sum[np.newaxis, :]
+       
     denominator[denominator == 0] = EPSILON
 
     numerator /= denominator
     delta_W = numerator
 
-    # gamma is in ]0, 1]
-    if gamma != 1:
-        delta_W **= gamma
-
     W *= delta_W
 
-    return W, H_sum, HHt, XHt
+    return W
 
-
-def _multiplicative_update_h(
-    X, W, H, beta_loss, l1_reg_H, l2_reg_H, gamma, A=None, B=None, rho=None
+def _multiplicative_update_v(
+    Z,
+    U
+    V,
+    beta_loss=1,
+    gamma=1.0,
+    H_sum=None,
+    HHt=None,
+    XHt=None,
+    update_H=True
 ):
-    """update H in Multiplicative Update NMF."""
-    if beta_loss == 2:
-        numerator = safe_sparse_dot(W.T, X)
-        denominator = np.linalg.multi_dot([W.T, W, H])
+    """Update V in Multiplicative Update NMF."""
+ 
+    # Numerator
 
+    # if X is sparse, compute WH only where X is non zero
+    UV_safe_Z = _special_sparse_dot(U, V, Z)
+    if sp.issparse(Z):
+        UV_safe_Z_data = UV_safe_Z.data
+        Z_data = Z.data
     else:
-        # Numerator
-        WH_safe_X = _special_sparse_dot(W, H, X)
-        if sp.issparse(X):
-            WH_safe_X_data = WH_safe_X.data
-            X_data = X.data
-        else:
-            WH_safe_X_data = WH_safe_X
-            X_data = X
-            # copy used in the Denominator
-            WH = WH_safe_X.copy()
-            if beta_loss - 1.0 < 0:
-                WH[WH < EPSILON] = EPSILON
+        UV_safe_Z_data = UV_safe_Z
+        Z_data = Z
+        # copy used in the Denominator
+        UV = UV_safe_Z.copy()
+        if beta_loss - 1.0 < 0:
+            UV[UV < EPSILON] = EPSILON
 
-        # to avoid division by zero
-        if beta_loss - 2.0 < 0:
-            WH_safe_X_data[WH_safe_X_data < EPSILON] = EPSILON
+    # to avoid taking a negative power of zero
+    if beta_loss - 2.0 < 0:
+        UV_safe_Z_data[UV_safe_Z_data < EPSILON] = EPSILON
 
-        if beta_loss == 1:
-            np.divide(X_data, WH_safe_X_data, out=WH_safe_X_data)
-        elif beta_loss == 0:
-            # speeds up computation time
-            # refer to /numpy/numpy/issues/9363
-            WH_safe_X_data **= -1
-            WH_safe_X_data **= 2
-            # element-wise multiplication
-            WH_safe_X_data *= X_data
-        else:
-            WH_safe_X_data **= beta_loss - 2
-            # element-wise multiplication
-            WH_safe_X_data *= X_data
+    if beta_loss == 1:
+        np.divide(Z_data, UV_safe_Z_data, out=UV_safe_Z_data)
+   
+    # here numerator = dot(Z * (dot(W, H) ** (beta_loss - 2)), H.T)
+    numerator = safe_sparse_dot(U.T, UV_safe_Z)
 
-        # here numerator = dot(W.T, (dot(W, H) ** (beta_loss - 2)) * X)
-        numerator = safe_sparse_dot(W.T, WH_safe_X)
+    # Denominator
+    if beta_loss == 1:
+        if U_sum is None:
+            U_sum = np.sum(U, axis=0)  # shape(n_components, )
 
-        # Denominator
-        if beta_loss == 1:
-            W_sum = np.sum(W, axis=0)  # shape(n_components, )
-            W_sum[W_sum == 0] = 1.0
-            denominator = W_sum[:, np.newaxis]
-
-        # beta_loss not in (1, 2)
-        else:
-            # computation of WtWH = dot(W.T, dot(W, H) ** beta_loss - 1)
-            if sp.issparse(X):
-                # memory efficient computation
-                # (compute column by column, avoiding the dense matrix WH)
-                WtWH = np.empty(H.shape)
-                for i in range(X.shape[1]):
-                    WHi = np.dot(W, H[:, i])
-                    if beta_loss - 1 < 0:
-                        WHi[WHi < EPSILON] = EPSILON
-                    WHi **= beta_loss - 1
-                    WtWH[:, i] = np.dot(W.T, WHi)
-            else:
-                WH **= beta_loss - 1
-                WtWH = np.dot(W.T, WH)
-            denominator = WtWH
-
-    # Add L1 and L2 regularization
-    if l1_reg_H > 0:
-        denominator += l1_reg_H
-    if l2_reg_H > 0:
-        denominator = denominator + l2_reg_H * H
+        denominator = U_sum[:, np.newaxis]
+       
     denominator[denominator == 0] = EPSILON
 
-    if A is not None and B is not None:
-        # Updates for the online nmf
-        if gamma != 1:
-            H **= 1 / gamma
-        numerator *= H
-        A *= rho
-        B *= rho
-        A += numerator
-        B += denominator
-        H = A / B
+    numerator /= denominator
+    delta_V = numerator
 
-        if gamma != 1:
-            H **= gamma
-    else:
-        delta_H = numerator
-        delta_H /= denominator
-        if gamma != 1:
-            delta_H **= gamma
-        H *= delta_H
+    V *= delta_V
 
-    return H
+    return V
 
 # Debo ajustar esta función
 def _fit_multiplicative_update(
+    S,
     X,
-    W,
+    Z,
+    U,
     H,
-    beta_loss="frobenius",
+    W,
+    V,
+    beta_loss="kullback-leibler",
     max_iter=200,
     tol=1e-4,
     l1_reg_W=0,
@@ -867,7 +931,7 @@ def _fit_multiplicative_update(
         gamma = 1.0
 
     # used for the convergence criterion
-    error_at_init = _beta_divergence(X, W, H, beta_loss, square_root=True)
+    error_at_init = _beta_divergence(S, X, Z, U, H, W, V, beta_loss, square_root=True)
     previous_error = error_at_init
 
     H_sum, HHt, XHt = None, None, None
@@ -2816,9 +2880,13 @@ class NMF_ACCSLP(_BaseNMF):
 
         if self.solver == "mu":
             W, H, n_iter, *_ = _fit_multiplicative_update(
+                S,
                 X,
-                W,
+                Z,
+                U,
                 H,
+                W,
+                V,
                 self._beta_loss,
                 self.max_iter,
                 self.tol,
