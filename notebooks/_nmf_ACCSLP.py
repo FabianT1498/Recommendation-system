@@ -1,4 +1,4 @@
-""" Non-negative matrix factorization applied to recommendation system using ACCSLP model.F
+""" Non-negative matrix factorization applied to recommendation system using ACCSLP model.
 """
 # Author: Fabian Trillo
 #         
