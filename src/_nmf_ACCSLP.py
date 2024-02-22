@@ -25,6 +25,10 @@ from sklearn.utils.validation import check_non_negative
 from sklearn.utils.extmath import randomized_svd, safe_sparse_dot, squared_norm
 from sklearn.utils import check_array, check_random_state
 
+import sys
+
+np.set_printoptions(threshold=sys.maxsize)
+
 EPSILON = np.finfo(np.float32).eps
 
 def norm(x):
@@ -150,6 +154,9 @@ def _beta_divergence(S, X, Z, U, H, W, V, alpha, beta, loss_function="kullback-l
     # fast and memory efficient computation of np.sum(np.dot(U, H))
     sum_UH = np.dot(np.sum(U, axis=0), np.sum(H, axis=1))
 
+    if sum_UH == 0:
+        sum_UH = EPSILON
+
     # computes np.sum((UH/sum_UH) * log(UH /(UH/sum_UH))) only where S is nonzero
     div_prop = UH_data/ sum_UH
     div_log = UH_data/ div_prop
@@ -166,13 +173,17 @@ def _beta_divergence(S, X, Z, U, H, W, V, alpha, beta, loss_function="kullback-l
 
     # fast and memory efficient computation of np.sum(np.dot(W, H))
     sum_WH = np.dot(np.sum(W, axis=0), np.sum(H, axis=1))
+
+    if sum_WH == 0:
+        sum_WH = EPSILON
     
     # computes np.sum((WH/sum_WH) * log(WH /(WH/sum_WH))) only where X is nonzero
     div_prop = WH_data/ sum_WH
-    div_log = WH_data/ div_prop
+
+    div_log = WH_data / div_prop
 
     res = np.dot(div_prop, np.log(div_log))
-    
+   
     # computes X * np.sum((WH/sum_WH) * log(WH /(WH/sum_WH))) only where X is nonzero
     res = np.dot(X_data, res)
 
@@ -183,6 +194,9 @@ def _beta_divergence(S, X, Z, U, H, W, V, alpha, beta, loss_function="kullback-l
 
     # fast and memory efficient computation of np.sum(np.dot(U, V))
     sum_UV = np.dot(np.sum(U, axis=0), np.sum(V, axis=1))
+
+    if sum_UV == 0:
+        sum_UV = EPSILON
     
     # computes np.sum((UV/sum_UV) * log(UV /(UV/sum_UV))) only where Z is nonzero
     div_prop = UV_data/ sum_UV
@@ -195,6 +209,7 @@ def _beta_divergence(S, X, Z, U, H, W, V, alpha, beta, loss_function="kullback-l
 
     # add full beta * (np.sum(np.dot(U, V)) - Z * np.sum((UV/sum_UV) * log(UV /(UV/sum_UV))))
     res_Z = beta * (sum_UV - res.sum())
+
 
     res = res_S + res_X + res_Z
 
@@ -531,6 +546,7 @@ def _multiplicative_update_w(
 
     W *= delta_W
 
+
     return W
 
 def _multiplicative_update_v(
@@ -571,6 +587,7 @@ def _multiplicative_update_v(
 
     V *= delta_V
 
+  
     return V
 
 def _fit_multiplicative_update(
@@ -635,16 +652,12 @@ def _fit_multiplicative_update(
 
     beta_loss = _beta_loss_to_float(beta_loss)
 
-    # gamma for Maximization-Minimization (MM) algorithm [Fevotte 2011]
-    gamma = 1.0
-
     # used for the convergence criterion
-    error_at_init = _beta_divergence(S, X, Z, U, H, W, V, alpha, beta, beta_loss)
+    error_at_init = _beta_divergence(S=S, X=X, Z=Z, U=U, H=H, W=W, V=V, alpha=alpha, beta=beta, loss_function=beta_loss)
     previous_error = error_at_init
 
     for n_iter in range(1, max_iter + 1):
         # update U
-        # H_sum, HHt and XHt are saved and reused if not update_H
         U = _multiplicative_update_u(
             S=S,
             Z=Z,
@@ -675,13 +688,13 @@ def _fit_multiplicative_update(
             V=V,
         )
 
-        # necessary for stability with beta_loss < 1
-        # if beta_loss <= 1:
-        #     H[H < np.finfo(np.float64).eps] = 0.0
+        # necessary for stability
+        H[H < np.finfo(np.float64).eps] = 0.0
+        V[V < np.finfo(np.float64).eps] = 0.0
 
         # test convergence criterion every 10 iterations
         if tol > 0 and n_iter % 10 == 0:
-            error = _beta_divergence(S, X, Z, U, H, W, V, alpha, beta, beta_loss)
+            error = _beta_divergence(S=S, X=X, Z=Z, U=U, H=H, W=W, V=V, alpha=alpha, beta=beta, loss_function=beta_loss)
 
             if verbose:
                 iter_time = time.time()
@@ -690,6 +703,8 @@ def _fit_multiplicative_update(
                     % (n_iter, iter_time - start_time, error)
                 )
 
+            print("(previous_error - error) / error_at_init):", (previous_error - error) / error_at_init)
+            
             if (previous_error - error) / error_at_init < tol:
                 break
             previous_error = error
@@ -798,7 +813,7 @@ class NMF_ACCSLP():
 
     def __init__(
         self,
-        n_components="warn",
+        n_components="auto",
         *,
         init="nndsvd",
         solver="mu",
@@ -836,6 +851,10 @@ class NMF_ACCSLP():
             raise ValueError(
                 f"This class only uses 'mu' and beta loss function 'kullback-leibler' to solve matrix optimization problem"
             )
+
+        # beta_loss
+        self._beta_loss = _beta_loss_to_float(self.beta_loss)
+  
         if self.solver == "mu" and self.init == "nndsvd":
             warnings.warn(
                 (
@@ -847,9 +866,6 @@ class NMF_ACCSLP():
                 UserWarning,
             )
         
-        # beta_loss
-        self._beta_loss = _beta_loss_to_float(self.beta_loss)
-
         return self
 
     def fit_transform(self, S, Z, X, y=None, U=None, H=None):
@@ -953,7 +969,7 @@ class NMF_ACCSLP():
         # check parameters
         self._check_params(S)
 
-        if S.min() == 0 or Z.min() == 0 or X.min() == 0  and self._beta_loss <= 0:
+        if (S.min() == 0 or Z.min() == 0 or X.min() == 0) and self._beta_loss <= 0:
             raise ValueError(
                 "When beta_loss <= 0 and X contains zeros, "
                 "the solver may diverge. Please add small values "
