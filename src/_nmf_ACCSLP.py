@@ -183,9 +183,11 @@ def _beta_divergence(S, X, Z, U, H, W, V, alpha, beta, loss_function="kullback-l
     div_log = WH_data / div_prop
 
     res = np.dot(div_prop, np.log(div_log))
-   
+
     # computes X * np.sum((WH/sum_WH) * log(WH /(WH/sum_WH))) only where X is nonzero
     res = np.dot(X_data, res)
+
+    # print("computes X * np.sum((WH/sum_WH) * log(WH /(WH/sum_WH)))", res)
 
     # add full alpha * (np.sum(np.dot(U, H)) - S * np.sum((UH/sum_UH) * log(UH /(UH/sum_UH))))
     res_X = alpha * (sum_WH - res.sum())
@@ -243,7 +245,7 @@ def _beta_loss_to_float(beta_loss):
         beta_loss = beta_loss_map[beta_loss]
     return beta_loss
 
-def _initialize_nmf(X, n_components, init=None, eps=1e-6, random_state=None):
+def _initialize_nmf(X, n_components, init=None, eps=1e-6, random_state=None, matrix_target="Matrix S"):
     """Algorithms for NMF initialization.
 
     Computes an initial guess for the non-negative
@@ -308,6 +310,8 @@ def _initialize_nmf(X, n_components, init=None, eps=1e-6, random_state=None):
     check_non_negative(X, "NMF initialization")
     n_samples, n_features = X.shape
 
+    print("Initializing ", matrix_target)
+
     if (
         init is not None
         and init != "random"
@@ -363,12 +367,29 @@ def _initialize_nmf(X, n_components, init=None, eps=1e-6, random_state=None):
 
         # choose update
         if m_p > m_n:
-            u = x_p / x_p_nrm
-            v = y_p / y_p_nrm
+
+            if x_p_nrm != 0:
+                u = x_p / x_p_nrm
+            else:
+                u = np.zeros_like(x_p)
+
+            if y_p_nrm != 0:    
+                v = y_p / y_p_nrm
+            else:
+                v = np.zeros_like(y_p)
+                
             sigma = m_p
         else:
-            u = x_n / x_n_nrm
-            v = y_n / y_n_nrm
+            if x_n_nrm != 0:
+                u = x_n / x_n_nrm
+            else:
+                u = np.zeros_like(x_n)
+
+            if y_n_nrm != 0:
+                v = y_n / y_n_nrm
+            else:
+                v = np.zeros_like(y_n)
+                
             sigma = m_n
 
         lbd = np.sqrt(S[j] * sigma)
@@ -703,7 +724,7 @@ def _fit_multiplicative_update(
                     % (n_iter, iter_time - start_time, error)
                 )
 
-            print("(previous_error - error) / error_at_init):", (previous_error - error) / error_at_init)
+            # print("(previous_error - error) / error_at_init):", (previous_error - error) / error_at_init)
             
             if (previous_error - error) / error_at_init < tol:
                 break
@@ -977,9 +998,9 @@ class NMF_ACCSLP():
             )
 
         # initialize or check W and H
-        U, H = self._initialize_w_h(S)
-        W, R = self._initialize_w_h(X)
-        L, V = self._initialize_w_h(Z)
+        U, H = self._initialize_w_h(S, matrix_target="Matrix S")
+        W, R = self._initialize_w_h(X, matrix_target="Matrix X")
+        L, V = self._initialize_w_h(Z, matrix_target="Matrix Z")
 
         n_iter = 0
 
@@ -1012,14 +1033,14 @@ class NMF_ACCSLP():
 
         return U, H, n_iter
 
-    def _initialize_w_h(self, X):
+    def _initialize_w_h(self, X, matrix_target="Matrix S"):
         """initialize W and H."""
 
         if self._n_components == "auto":
             self._n_components = X.shape[1]
 
         W, H = _initialize_nmf(
-            X, self._n_components, init=self.init
+            X, self._n_components, init=self.init, matrix_target=matrix_target
         )
 
         return W, H
