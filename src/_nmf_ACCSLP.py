@@ -143,80 +143,35 @@ def _beta_divergence(S, X, Z, U, H, W, V, alpha, beta, loss_function="kullback-l
     indices = Z_data > EPSILON
     UV_data = UV_data[indices]
     Z_data = Z_data[indices]
-
-    # used to avoid division by zero
-    UH_data[UH_data < EPSILON] = EPSILON
-    WH_data[WH_data < EPSILON] = EPSILON
-    UV_data[UV_data < EPSILON] = EPSILON
-
+   
     # ---- Computes np.sum(np.dot(U, H)) - S * np.sum((UH/sum_UH) * log(UH /(UH/sum_UH))) ----
 
     # fast and memory efficient computation of np.sum(np.dot(U, H))
     sum_UH = np.dot(np.sum(U, axis=0), np.sum(H, axis=1))
 
-    if sum_UH == 0:
-        sum_UH = EPSILON
+    res = np.dot(S_data, np.log(UH_data))
 
-    # computes np.sum((UH/sum_UH) * log(UH /(UH/sum_UH))) only where S is nonzero
-    div_prop = UH_data/ sum_UH
-    div_log = UH_data/ div_prop
-
-    res = np.dot(div_prop, np.log(div_log))
-    
-    # computes S * np.sum((WH/sum_WH) * log(UH /(WH/sum_WH))) only where S is nonzero
-    res = np.dot(S_data, res)
-
-    # add full np.sum(np.dot(U, H)) - S * np.sum((UH/sum_UH) * log(UH /(UH/sum_UH)))
-    res_S = sum_UH - res.sum()
+    res_S = sum_UH - res
 
     # ---- Computes np.sum(np.dot(W, H)) - X * np.sum((WH/sum_WH) * log(WH /(WH/sum_WH))) ----
 
-    # fast and memory efficient computation of np.sum(np.dot(W, H))
     sum_WH = np.dot(np.sum(W, axis=0), np.sum(H, axis=1))
 
-    if sum_WH == 0:
-        sum_WH = EPSILON
-    
-    # computes np.sum((WH/sum_WH) * log(WH /(WH/sum_WH))) only where X is nonzero
-    div_prop = WH_data/ sum_WH
+    res = np.dot(X_data, np.log(WH_data))
 
-    div_log = WH_data / div_prop
-
-    res = np.dot(div_prop, np.log(div_log))
-
-    # computes X * np.sum((WH/sum_WH) * log(WH /(WH/sum_WH))) only where X is nonzero
-    res = np.dot(X_data, res)
-
-    # print("computes X * np.sum((WH/sum_WH) * log(WH /(WH/sum_WH)))", res)
-
-    # add full alpha * (np.sum(np.dot(U, H)) - S * np.sum((UH/sum_UH) * log(UH /(UH/sum_UH))))
-    res_X = alpha * (sum_WH - res.sum())
+    res_X = alpha * (sum_WH - res)
 
     # ---- Computes np.sum(np.dot(U, V)) - Z * np.sum((UV/sum_UV) * log(UV /(UV/sum_UV))) ----
 
-    # fast and memory efficient computation of np.sum(np.dot(U, V))
     sum_UV = np.dot(np.sum(U, axis=0), np.sum(V, axis=1))
-
-    if sum_UV == 0:
-        sum_UV = EPSILON
     
-    # computes np.sum((UV/sum_UV) * log(UV /(UV/sum_UV))) only where Z is nonzero
-    div_prop = UV_data/ sum_UV
-    div_log = UV_data/ div_prop
+    res = np.dot(Z_data, np.log(UV_data))
 
-    res = np.dot(div_prop, np.log(div_log))
-    
-    # computes Z * np.sum((UV/sum_UV) * log(UV /(UV/sum_UV))) only where Z is nonzero
-    res = np.dot(Z_data, res)
-
-    # add full beta * (np.sum(np.dot(U, V)) - Z * np.sum((UV/sum_UV) * log(UV /(UV/sum_UV))))
-    res_Z = beta * (sum_UV - res.sum())
-
+    res_Z = beta * (sum_UV - res)
 
     res = res_S + res_X + res_Z
 
     return res
-
 
 def _special_sparse_dot(W, H, X):
     """Computes np.dot(W, H), only where X is non zero."""
@@ -448,7 +403,7 @@ def _multiplicative_update_u(
         UV_safe_Z_data = UV_safe_Z
         Z_data = Z
         
-    # to avoid taking a negative power of zero
+     # to avoid division by zero
     UH_safe_S_data[UH_safe_S_data < EPSILON] = EPSILON
     UV_safe_Z_data[UV_safe_Z_data < EPSILON] = EPSILON
 
@@ -504,7 +459,7 @@ def _multiplicative_update_h(
         WH_safe_X_data = WH_safe_X
         X_data = X
        
-    # to avoid taking a negative power of zero
+    # to avoid division by zero
     UH_safe_S_data[UH_safe_S_data < EPSILON] = EPSILON
     WH_safe_X_data[WH_safe_X_data < EPSILON] = EPSILON
 
@@ -724,7 +679,7 @@ def _fit_multiplicative_update(
                     % (n_iter, iter_time - start_time, error)
                 )
 
-            # print("(previous_error - error) / error_at_init):", (previous_error - error) / error_at_init)
+            print("(previous_error - error) / error_at_init):", (previous_error - error) / error_at_init)
             
             if (previous_error - error) / error_at_init < tol:
                 break
