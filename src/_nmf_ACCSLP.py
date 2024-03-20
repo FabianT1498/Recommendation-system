@@ -133,17 +133,21 @@ def _beta_divergence(S, X, Z, U, H, W, V, alpha, beta, loss_function="kullback-l
 
     # do not affect the zeros: here 0 ** (-1) = 0 and not infinity
     indices = S_data > EPSILON
-    UH_data = UH_data[indices]
     S_data = S_data[indices]
+    UH_data = UH_data[indices]
 
-    indices = X_data > EPSILON
-    WH_data = WH_data[indices]
-    X_data = X_data[indices]
+    # indices = X_data > EPSILON
+    # X_data = X_data[indices]
+    # WH_data = WH_data[indices]
+    zero_indices = WH_data == 0.0
+    WH_data[zero_indices] = EPSILON
+  
+    # indices = Z_data > EPSILON
+    # UV_data = UV_data[indices]
+    # Z_data = Z_data[indices]
+    zero_indices = UV_data == 0.0
+    UV_data[zero_indices] = EPSILON
 
-    indices = Z_data > EPSILON
-    UV_data = UV_data[indices]
-    Z_data = Z_data[indices]
-   
     # ---- Computes np.sum(np.dot(U, H)) - S * np.sum((UH/sum_UH) * log(UH /(UH/sum_UH))) ----
 
     # fast and memory efficient computation of np.sum(np.dot(U, H))
@@ -156,7 +160,7 @@ def _beta_divergence(S, X, Z, U, H, W, V, alpha, beta, loss_function="kullback-l
     # ---- Computes np.sum(np.dot(W, H)) - X * np.sum((WH/sum_WH) * log(WH /(WH/sum_WH))) ----
 
     sum_WH = np.dot(np.sum(W, axis=0), np.sum(H, axis=1))
-
+ 
     res = np.dot(X_data, np.log(WH_data))
 
     res_X = alpha * (sum_WH - res)
@@ -266,36 +270,6 @@ def _initialize_nmf(X, n_components, init=None, eps=1e-6, random_state=None, mat
     n_samples, n_features = X.shape
 
     print("Initializing ", matrix_target)
-
-    if (
-        init is not None
-        and init != "random"
-        and n_components > min(n_samples, n_features)
-    ):
-        raise ValueError(
-            "init = '{}' can only be used when "
-            "n_components <= min(n_samples, n_features)".format(init)
-        )
-
-    if init is None:
-        if n_components <= min(n_samples, n_features):
-            init = "nndsvda"
-        else:
-            init = "random"
-
-    # Random initialization
-    if init == "random":
-        avg = np.sqrt(X.mean() / n_components)
-        rng = check_random_state(random_state)
-        H = avg * rng.standard_normal(size=(n_components, n_features)).astype(
-            X.dtype, copy=False
-        )
-        W = avg * rng.standard_normal(size=(n_samples, n_components)).astype(
-            X.dtype, copy=False
-        )
-        np.abs(H, out=H)
-        np.abs(W, out=W)
-        return W, H
 
     # NNDSVD initialization
     U, S, V = randomized_svd(X, n_components, random_state=random_state)
@@ -664,10 +638,6 @@ def _fit_multiplicative_update(
             V=V,
         )
 
-        # necessary for stability
-        H[H < np.finfo(np.float64).eps] = 0.0
-        V[V < np.finfo(np.float64).eps] = 0.0
-
         # test convergence criterion every 10 iterations
         if tol > 0 and n_iter % 10 == 0:
             error = _beta_divergence(S=S, X=X, Z=Z, U=U, H=H, W=W, V=V, alpha=alpha, beta=beta, loss_function=beta_loss)
@@ -879,7 +849,7 @@ class NMF_ACCSLP():
 
         Returns
         -------
-        S_prime : ndarray of shape (n_samples, n_components)
+        U : array-like of shape (n_samples, n_components), default=None
             Transformed data.
         """
         S = check_array(
