@@ -11,35 +11,131 @@ K, one_hit, precision, mrr, recall, f1
 K, one_hit, precision, mrr, recall, f1 
 10,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
 3,1.0,1.0,1.0,0.5,0.6666666666666666
 K, one_hit, precision, mrr, recall, f1 
 5,1.0,1.0,1.0,0.5,0.6666666666666666
 K, one_hit, precision, mrr, recall, f1 
 10,1.0,1.0,1.0,0.5,0.6666666666666666
 K, one_hit, precision, mrr, recall, f1 
-3,1.0,1.0,1.0,0.6666666666666666,0.8
+3,1.0,1.0,1.0,0.5,0.6666666666666666
 K, one_hit, precision, mrr, recall, f1 
-5,1.0,1.0,1.0,0.6666666666666666,0.8
+5,1.0,1.0,1.0,0.5,0.6666666666666666
 K, one_hit, precision, mrr, recall, f1 
-10,1.0,1.0,1.0,0.6666666666666666,0.8
+10,1.0,1.0,1.0,0.5,0.6666666666666666
 K, one_hit, precision, mrr, recall, f1 
-3,1.0,1.0,1.0,0.6666666666666666,0.8
+3,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
-5,1.0,1.0,1.0,0.6666666666666666,0.8
+5,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
-10,1.0,1.0,1.0,0.6666666666666666,0.8
+10,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
-3,1.0,1.0,1.0,1.0,1.0
+3,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
-5,1.0,1.0,1.0,1.0,1.0
+5,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
-10,1.0,1.0,1.0,1.0,1.0
+10,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
-3,1.0,1.0,1.0,1.0,1.0
+3,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
-5,1.0,1.0,1.0,1.0,1.0
+5,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
-10,1.0,1.0,1.0,1.0,1.0
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+3,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+5,0.0,0.0,0.0,0.0,0.0
+K, one_hit, precision, mrr, recall, f1 
+10,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
 3,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
@@ -53,14 +149,8 @@ K, one_hit, precision, mrr, recall, f1
 K, one_hit, precision, mrr, recall, f1 
 10,1.0,1.0,1.0,1.0,1.0
 K, one_hit, precision, mrr, recall, f1 
-3,1.0,1.0,1.0,1.0,1.0
+3,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
-5,1.0,1.0,1.0,1.0,1.0
+5,0.0,0.0,0.0,0.0,0.0
 K, one_hit, precision, mrr, recall, f1 
-10,1.0,1.0,1.0,1.0,1.0
-K, one_hit, precision, mrr, recall, f1 
-3,1.0,1.0,1.0,0.5,0.6666666666666666
-K, one_hit, precision, mrr, recall, f1 
-5,1.0,1.0,1.0,0.8333333333333334,0.9090909090909091
-K, one_hit, precision, mrr, recall, f1 
-10,1.0,1.0,1.0,0.8333333333333334,0.9090909090909091
+10,0.0,0.0,0.0,0.0,0.0
